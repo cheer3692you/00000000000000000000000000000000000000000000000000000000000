@@ -1,0 +1,53 @@
+body {
+  font-family: "Helvetica Neue", sans-serif;
+  background-color: #ff1c1c;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background-color: #ff1c1c;
+  color: #ffea4f;
+  padding: 2rem;
+  text-align: center;
+}
+
+main {
+  padding: 2rem;
+}
+
+h2 {
+  color: #2c3e50;
+}
+
+.file-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.file-list li {
+  background: white;
+  margin: 10px 0;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  transition: background 0.3s;
+}
+
+.file-list li:hover {
+  background: #eaf6ff;
+}
+
+.file-list a {
+  text-decoration: none;
+  color: #2980b9;
+  font-weight: bold;
+}
+
+footer {
+  text-align: center;
+  padding: 1rem;
+  background-color: #ecf0f1;
+  font-size: 0.9rem;
+}
