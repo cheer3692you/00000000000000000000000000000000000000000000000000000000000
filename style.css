@@ -1,5 +1,6 @@
 body {
   font-family: "Helvetica Neue", sans-serif;
+  font-size: 150%;
   background-color: #ff1c1c;
   color: #333;
   margin: 0;
@@ -27,6 +28,7 @@ h2 {
 }
 
 .file-list li {
+  font-size: 150%;
   background: white;
   margin: 10px 0;
   padding: 9px;
