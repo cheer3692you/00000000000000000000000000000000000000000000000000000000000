@@ -29,7 +29,7 @@ h2 {
 .file-list li {
   background: white;
   margin: 10px 0;
-  padding: 1rem;
+  padding: 16px;
   border: 1px solid #ccc;
   border-radius: 50px 50px;
   transition: background 0.3s;
