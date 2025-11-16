@@ -11,7 +11,62 @@
     <h1>欢迎访问我的资源网站</h1>
     <p>这里提供各类学习资料与工具资源</p>
   </header>
-    <div><object data="/files/www_kdocs_cn_l_cqOMsfXPi7lU.pdf" type="application/pdf" width="600" height="700"></object></div>
+    <title>预览pdf</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      .pdf_box,
+      #pdf-container {
+        width: 100vw;
+        height: 100vh;
+        overflow: scroll;
+      }
+      canvas {
+        width: 100vw;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <iframe src="test.pdf" class="pdf_box"></iframe>
+    <embed src="test.pdf" class="pdf_box">
+ 
+    <object data="test.pdf" class="pdf_box"></object> -->
+    <div id="pdf-container"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.js"></script>
+    <script>
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.js";
+ 
+      const pdfUrl = "test.pdf",
+        _targetDom = "pdf-container";
+      pdfjsLib.getDocument("test.pdf").promise.then(async (doc) => {
+        let _i = 0;
+        for (let item of new Array(doc.numPages).fill()) {
+          await renderOtherPage(doc, ++_i, _targetDom);
+        }
+      });
+      function renderOtherPage(pdfDoc, pageNumber) {
+        return new Promise((resolve) => {
+          pdfDoc.getPage(pageNumber).then((page) => {
+            const scale = 1;
+            const viewport = page.getViewport({ scale: scale });
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            document.getElementById(_targetDom).appendChild(canvas);
+            const renderContext = {
+              canvasContext: context,
+              viewport: viewport,
+            };
+            page.render(renderContext);
+            resolve();
+          });
+        });
+      }
+    </script>
   <footer>
     <p>&copy; 2025 Jsion | 🔒🔒🔒本站托管于 GitHub Pages & Cloudflare</p>
   </footer>
