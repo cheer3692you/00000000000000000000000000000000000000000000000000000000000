@@ -29,19 +29,19 @@
     </style>
   </head>
   <body>
-    <!-- <iframe src="test.pdf" class="pdf_box"></iframe>
-    <embed src="test.pdf" class="pdf_box">
+    <!-- <iframe src="/files/www_kdocs_cn_l_cqOMsfXPi7lU.pdf" class="pdf_box"></iframe>
+    <embed src="/files/www_kdocs_cn_l_cqOMsfXPi7lU.pdf" class="pdf_box">
  
-    <object data="test.pdf" class="pdf_box"></object> -->
+    <object data="/files/www_kdocs_cn_l_cqOMsfXPi7lU.pdf" class="pdf_box"></object> -->
     <div id="pdf-container"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.js"></script>
     <script>
       pdfjsLib.GlobalWorkerOptions.workerSrc =
         "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.js";
  
-      const pdfUrl = "test.pdf",
+      const pdfUrl = "/files/www_kdocs_cn_l_cqOMsfXPi7lU.pdf",
         _targetDom = "pdf-container";
-      pdfjsLib.getDocument("test.pdf").promise.then(async (doc) => {
+      pdfjsLib.getDocument("/files/www_kdocs_cn_l_cqOMsfXPi7lU.pdf").promise.then(async (doc) => {
         let _i = 0;
         for (let item of new Array(doc.numPages).fill()) {
           await renderOtherPage(doc, ++_i, _targetDom);
