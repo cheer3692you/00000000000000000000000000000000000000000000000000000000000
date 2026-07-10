@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>PIC</title>
+    <style>
+        .container { margin: 20px; font-family: Arial, sans-serif; }
+        #display-area { margin-top: 15px; min-height: 200px; }
+        img { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .error-msg { color: red; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h3>请输入凭据查看图片</h3>
+    <input type="text" id="code-input" placeholder="例如: xxx" style="padding: 8px; width: 200px;">
+    <p id="status" class="error-msg">未找到对应图片</p>
+    
+    <div id="display-area"></div>
+</div>
+
+<script>
+    const input = document.getElementById('code-input');
+    const displayArea = document.getElementById('display-area');
+    const statusMsg = document.getElementById('status');
+
+    // 图片配置库
+    const config = {
+        'P260710': 'https://githnb.1976473.xyz/files/sucai-pictures/zekinf.png', // 请替换为实际URL
+    };
+
+    let timeoutId;
+
+    input.addEventListener('input', (e) => {
+        // 清除之前的定时器（防抖处理，避免每敲一个字母都请求）
+        clearTimeout(timeoutId);
+        
+        // 设置新的定时器，用户停止输入500ms后执行
+        timeoutId = setTimeout(() => {
+            const key = e.target.value.trim();
+            
+            // 清空显示区域
+            displayArea.innerHTML = '';
+            statusMsg.style.display = 'none';
+
+            if (!key) return; // 如果为空，不做任何操作
+
+            // 检查是否存在该键（这里使用严格匹配，如需忽略大小写可使用 key.toLowerCase()）
+            if (config[key]) {
+                const img = new Image();
+                img.src = config[key];
+                img.alt = key;
+                
+                // 图片加载成功则显示
+                img.onload = () => {
+                    displayArea.appendChild(img);
+                };
+                
+                // 图片加载失败处理
+                img.onerror = () => {
+                    statusMsg.textContent = "图片加载失败";
+                    statusMsg.style.display = 'block';
+                };
+            } else {
+                statusMsg.textContent = "未识别的代码: " + key;
+                statusMsg.style.display = 'block';
+            }
+        }, 500);
+    });
+</script>
+
+</body>
+</html>
