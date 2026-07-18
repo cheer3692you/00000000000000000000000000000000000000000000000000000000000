@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 1. 引入 Cloudflare Turnstile 官方标准 JS 库 -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+</head>
+<body>
+
+    <!-- 你的图片标签，用 data-uuid 存储图片名 -->
+    <img data-uuid="928e7a58-d982-4ebf-ac04-aec2c6d0eb56.jpg" class="secure-img" alt="加密图">
+    <img data-uuid="bd845ee0-bcdb-49b1-b589-1d1fa2517f39.jpg" class="secure-img" alt="加密图2">
+
+    <!-- 2. 在页面隐式放置一个 Turnstile 容器（设置显示为隐藏） -->
+    <div id="turnstile-container" style="display: none;"></div>
+
+    <script>
+    const WORKER_HOST = "https://mitc.1976473.xyz"; // 你的 CF Workers 域名
+    const SITE_KEY = "0x4AAAAAADy-SV9SdOgpvt36";   // 第一步申请到的公开 Sitekey
+
+    // 页面加载完成后触发
+    window.addEventListener('DOMContentLoaded', () => {
+        // 初始化隐式 Turnstile 验证
+        turnstile.render('#turnstile-container', {
+            sitekey: SITE_KEY,
+            callback: function(turnstileToken) {
+                // 验证成功后，会自动返回一个 turnstileToken
+                // 拿着这个 Token 去并发请求所有图片的合法访问链接
+                loadAllImages(turnstileToken);
+            },
+        });
+    });
+
+    async function loadAllImages(turnstileToken) {
+        const images = document.querySelectorAll('.secure-img');
+        
+        for (let img of images) {
+            const uuid = img.getAttribute('data-uuid');
+            
+            try {
+                // 将 Turnstile Token 发给 Workers
+                const response = await fetch(`${WORKER_HOST}/get-img-token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ turnstileToken, uuid })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // 拿到图片专属的短效 Token，拼接成最终 URL 赋给 img.src
+                    img.src = `${WORKER_HOST}/img/${uuid}?token=${data.token}&expires=${data.expires}`;
+                } else {
+                    console.error('获取图片权限失败');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    }
+    </script>
+</body>
+</html>
