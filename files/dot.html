@@ -2,40 +2,53 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <!-- 1. 引入 Cloudflare Turnstile 官方标准 JS 库 -->
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安片加载</title>
+    <!-- 1. 引入 Cloudflare Turnstile 官方 JS 库，并通过 onload 参数绑定全局回调函数 -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
 </head>
 <body>
 
     <!-- 你的图片标签，用 data-uuid 存储图片名 -->
-    <img data-uuid="928e7a58-d982-4ebf-ac04-aec2c6d0eb56.jpg" class="secure-img" alt="加密图">
+    <img data-uuid="928e7a58-d982-4ebf-ac04-aec2c6d0eb56.jpg" class="secure-img" alt="加密图1">
     <img data-uuid="bd845ee0-bcdb-49b1-b589-1d1fa2517f39.jpg" class="secure-img" alt="加密图2">
 
-    <!-- 2. 在页面隐式放置一个 Turnstile 容器（设置显示为隐藏-->
+    <!-- 2. 在页面隐式放置一个 Turnstile 容器（设置显示为隐藏） -->
     <div id="turnstile-container" style="display: none;"></div>
+
     <script>
     const WORKER_HOST = "https://mitc.1976473.xyz"; // 你的 CF Workers 域名
-    const SITE_KEY = "0x4AAAAAADy-SV9SdOgpvt36";   // 第一步申请到的公开 Sitekey
+    const SITE_KEY = "0x4AAAAAADy-SV9SdOgpvt36";                   // 你申请到的公开 Sitekey
 
-    // 页面加载完成后触发
-    window.addEventListener('DOMContentLoaded', () => {
-        // 初始化隐式 Turnstile 验证
+    /**
+     * 3. 当 Turnstile 脚本完全加载并准备就绪后，会自动调用这个全局函数
+     */
+    window.onTurnstileLoad = function () {
         turnstile.render('#turnstile-container', {
             sitekey: SITE_KEY,
             callback: function(turnstileToken) {
                 // 验证成功后，会自动返回一个 turnstileToken
-                // 拿着这个 Token 去并发请求所有图片的合法访问链接
+                // 拿着这个 Token 去请求所有图片的合法访问链接
                 loadAllImages(turnstileToken);
             },
+            // 如果验证失败或超时，可以根据需要增加以下回调
+            'error-callback': function() {
+                console.error('Turnstile 验证遇到错误');
+            }
         });
-    });
+    };
 
+    /**
+     * 4. 并发请求图片 Token 并渲染
+     */
     async function loadAllImages(turnstileToken) {
         const images = document.querySelectorAll('.secure-img');
         
-        for (let img of images) {
+        // 使用 Map 将所有图片请求变为 Promise 数组，实现并发加载
+        const promises = Array.from(images).map(async (img) => {
             const uuid = img.getAttribute('data-uuid');
-            
+            if (!uuid) return;
+
             try {
                 // 将 Turnstile Token 发给 Workers
                 const response = await fetch(`${WORKER_HOST}/get-img-token`, {
@@ -49,12 +62,15 @@
                     // 拿到图片专属的短效 Token，拼接成最终 URL 赋给 img.src
                     img.src = `${WORKER_HOST}/img/${uuid}?token=${data.token}&expires=${data.expires}`;
                 } else {
-                    console.error('获取图片权限失败');
+                    console.error(`图片 ${uuid} 权限获取失败，状态码: ${response.status}`);
                 }
             } catch (err) {
-                console.error(err);
+                console.error(`请求图片 ${uuid} 时发生网络错误:`, err);
             }
-        }
+        });
+
+        // 同时执行所有图片请求
+        await Promise.all(promises);
     }
     </script>
 </body>
