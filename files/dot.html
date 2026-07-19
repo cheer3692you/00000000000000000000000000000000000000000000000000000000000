@@ -3,54 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>安片加载</title>
-    <!-- 1. 引入 Cloudflare Turnstile 官方 JS 库，并通过 onload 参数绑定全局回调函数 -->
+    <title>安全图片加载</title>
+    <!-- 1. 引入 Turnstile JS，强制绑定全局加载回调 -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
 </head>
 <body>
 
-    <!-- 你的图片标签，用 data-uuid 存储图片名 -->
-    <img data-uuid="928e7a58-d982-4ebf-ac04-aec2c6d0eb56.jpg" class="secure-img" alt="加密图1">
-    <img data-uuid="bd845ee0-bcdb-49b1-b589-1d1fa2517f39.jpg" class="secure-img" alt="加密图2">
+    <!-- 你的图片标签 -->
+    <img data-uuid="928e7a58-d982-4ebf-ac04-aec2c6d0eb56.jpg" class="secure-img" alt="加密图1" style="min-height:50px; background:#f0f0f0; display:block; margin:10px 0;">
+    <img data-uuid="bd845ee0-bcdb-49b1-b589-1d1fa2517f39.jpg" class="secure-img" alt="加密图2" style="min-height:50px; background:#f0f0f0; display:block; margin:10px 0;">
 
-    <!-- 2. 在页面隐式放置一个 Turnstile 容器（设置显示为隐藏） -->
-    <div id="turnstile-container" style="display: none;"></div>
+    <!-- 2. 🔴 核心修正：绝不能用 display:none！改用官方认可的离屏隐藏方式 -->
+    <div id="turnstile-container" style="position: absolute; left: -9999px; top: -9999px; opacity: 0; pointer-events: none;"></div>
 
     <script>
     const WORKER_HOST = "https://mitc.1976473.xyz"; // 你的 CF Workers 域名
     const SITE_KEY = "0x4AAAAAADy-SV9SdOgpvt36";                   // 你申请到的公开 Sitekey
 
+    console.log("页面已加载，等待 Turnstile 脚本初始化...");
+
     /**
-     * 3. 当 Turnstile 脚本完全加载并准备就绪后，会自动调用这个全局函数
+     * 3. Turnstile 脚本完全加载后触发
      */
     window.onTurnstileLoad = function () {
-        turnstile.render('#turnstile-container', {
-            sitekey: SITE_KEY,
-            callback: function(turnstileToken) {
-                // 验证成功后，会自动返回一个 turnstileToken
-                // 拿着这个 Token 去请求所有图片的合法访问链接
-                loadAllImages(turnstileToken);
-            },
-            // 如果验证失败或超时，可以根据需要增加以下回调
-            'error-callback': function() {
-                console.error('Turnstile 验证遇到错误');
-            }
-        });
+        console.log("✅ Turnstile 脚本加载成功，开始渲染验证器...");
+        
+        try {
+            turnstile.render('#turnstile-container', {
+                sitekey: SITE_KEY,
+                // 如果你的 Sitekey 在 CF 后台选的是 "Invisible"（隐式），这里可以填 "invisible"
+                appearance: "always", 
+                callback: function(turnstileToken) {
+                    console.log("🎉 Turnstile 验证成功，拿到 Token:", turnstileToken.substring(0, 20) + "...");
+                    // 拿着 Token 去并发请求所有图片
+                    loadAllImages(turnstileToken);
+                },
+                'error-callback': function(error) {
+                    console.error('❌ Turnstile 验证器内部发生错误，可能 Sitekey 不匹配或域名未授权。错误码/信息:', error);
+                },
+                'expired-callback': function() {
+                    console.warn('⚠️ Turnstile Token 已过期，正在尝试重新验证...');
+                    turnstile.reset('#turnstile-container');
+                }
+            });
+        } catch (e) {
+            console.error("❌ 调用 turnstile.render 时发生崩溃:", e);
+        }
     };
 
     /**
-     * 4. 并发请求图片 Token 并渲染
+     * 4. 请求 Worker 并换取图片
      */
     async function loadAllImages(turnstileToken) {
         const images = document.querySelectorAll('.secure-img');
+        console.log(`开始为 ${images.length} 张图片申请安全链接...`);
         
-        // 使用 Map 将所有图片请求变为 Promise 数组，实现并发加载
-        const promises = Array.from(images).map(async (img) => {
+        const promises = Array.from(images).map(async (img, index) => {
             const uuid = img.getAttribute('data-uuid');
             if (!uuid) return;
 
             try {
-                // 将 Turnstile Token 发给 Workers
+                console.log(`[图片 ${index + 1}] 正在向 Worker 请求: ${uuid}`);
                 const response = await fetch(`${WORKER_HOST}/get-img-token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -59,17 +72,17 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    // 拿到图片专属的短效 Token，拼接成最终 URL 赋给 img.src
+                    console.log(`[图片 ${index + 1}] Worker 验证通过，已拿到短效链接`);
+                    // 拼接最终 URL
                     img.src = `${WORKER_HOST}/img/${uuid}?token=${data.token}&expires=${data.expires}`;
                 } else {
-                    console.error(`图片 ${uuid} 权限获取失败，状态码: ${response.status}`);
+                    console.error(`[图片 ${index + 1}] Worker 拒绝了请求。状态码: ${response.status}，请检查 Worker 后台日志。`);
                 }
             } catch (err) {
-                console.error(`请求图片 ${uuid} 时发生网络错误:`, err);
+                console.error(`[图片 ${index + 1}] 请求网络异常:`, err);
             }
         });
 
-        // 同时执行所有图片请求
         await Promise.all(promises);
     }
     </script>
